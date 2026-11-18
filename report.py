@@ -98,6 +98,17 @@ def distribute_proportionally(
     return result
 
 
+# Форматирование денежных сумм с фиксированными двумя знаками после запятой
+_MONEY_Q = Decimal("0.01")
+
+
+def _m(v) -> str:
+    """Возвращает строку денежной суммы с ровно двумя знаками после запятой."""
+    if isinstance(v, str):
+        return v
+    return str(Decimal(str(v)).quantize(_MONEY_Q, rounding=ROUND_HALF_UP))
+
+
 def main():
     # Дата отчёта
     if len(sys.argv) > 1:
@@ -242,7 +253,7 @@ def main():
     for cr in contract_results:
         print(f"{'='*60}")
         print(f"Договор {cr['contract_id']} | Подрядчик: {cr['contractor']}")
-        print(f"Сумма договора: {cr['amount']} руб.")
+        print(f"Сумма договора: {_m(cr['amount'])} руб.")
         print(f"{'-'*60}")
         print(f"{'Работа':<35} {'Цена':>10} {'Выплачено':>10} {'Осталось':>10} {'Переплата':>10} {'Статус':>10}")
         print(f"{'-'*60}")
@@ -254,14 +265,14 @@ def main():
             else:
                 remaining = max(Decimal("0"), wr["price"] - total_p)
                 overpay = wr["overpayment"]
-            print(f"{wr['title'][:34]:<35} {wr['price']:>10} {total_p:>10} {remaining:>10} {overpay:>10} {wr['status']:>10}")
+            print(f"{wr['title'][:34]:<35} {_m(wr['price']):>10} {_m(total_p):>10} {_m(remaining):>10} {_m(overpay):>10} {wr['status']:>10}")
         print(f"{'-'*60}")
-        print(f"{'ИТОГО по договору (номинально)':<35} {cr['total_works_price']:>10} {cr['total_paid']:>10} {cr['total_remaining']:>10} {'—':>10}")
+        print(f"{'ИТОГО по договору (номинально)':<35} {_m(cr['total_works_price']):>10} {_m(cr['total_paid']):>10} {_m(cr['total_remaining']):>10} {'—':>10}")
         if cr["cancelled_works_price"] > 0:
-            print(f"{'  Отменённые работы (к уточнению)':<35} {cr['cancelled_works_price']:>10} {'0':>10} {cr['cancelled_works_price']:>10} {'—':>10}")
-        print(f"{'  Действующие работы':<35} {cr['active_works_price']:>10} {cr['total_paid']:>10} {cr['active_remaining']:>10} {'—':>10}")
+            print(f"{'  Отменённые работы (к уточнению)':<35} {_m(cr['cancelled_works_price']):>10} {_m(Decimal('0')):>10} {_m(cr['cancelled_works_price']):>10} {'—':>10}")
+        print(f"{'  Действующие работы':<35} {_m(cr['active_works_price']):>10} {_m(cr['total_paid']):>10} {_m(cr['active_remaining']):>10} {'—':>10}")
         if cr["overpayment"] > 0:
-            print(f"{'  Переплата':<35} {'—':>10} {'—':>10} {'—':>10} {cr['overpayment']:>10}")
+            print(f"{'  Переплата':<35} {'—':>10} {'—':>10} {'—':>10} {_m(cr['overpayment']):>10}")
         print()
 
     # Сохранение в CSV
@@ -282,12 +293,12 @@ def main():
                     remaining = max(Decimal("0"), wr["price"] - total_p)
                     overpay = wr["overpayment"]
                 writer.writerow([
-                    cr["contract_id"], cr["contractor"], cr["amount"],
-                    wr["work_id"], wr["title"], wr["price"], total_p, remaining, overpay, wr["status"]
+                    cr["contract_id"], cr["contractor"], _m(cr["amount"]),
+                    wr["work_id"], wr["title"], _m(wr["price"]), _m(total_p), _m(remaining), _m(overpay), wr["status"]
                 ])
             writer.writerow([
-                cr["contract_id"], cr["contractor"], cr["amount"],
-                "", "", cr["total_works_price"], cr["total_paid"], cr["total_remaining"], "—", "ИТОГО"
+                cr["contract_id"], cr["contractor"], _m(cr["amount"]),
+                "", "", _m(cr["total_works_price"]), _m(cr["total_paid"]), _m(cr["total_remaining"]), "—", "ИТОГО"
             ])
     print(f"Отчёт сохранён в {output_path}")
 
